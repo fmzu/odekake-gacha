@@ -12,89 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-type StationResult = {
-  type: "station";
-  name: string;
-  line: string;
-  prefecture: string;
-};
-
-type SpotResult = {
-  type: "spot";
-  name: string;
-  tourism: string;
-  lat: number;
-  lon: number;
-};
-
-type GachaResult = StationResult | SpotResult;
-
-type Station = {
-  name: string;
-  prefecture: string;
-  line: string;
-  x: number;
-  y: number;
-  postal: string;
-  prev: string;
-  next: string;
-};
-
-type Spot = {
-  name: string;
-  tourism: string;
-  lat: number;
-  lon: number;
-};
-
-const TOURISM_LABELS: Record<string, string> = {
-  attraction: "観光スポット",
-  museum: "博物館/美術館",
-  viewpoint: "展望スポット",
-};
-
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-async function fetchAreas(): Promise<string[]> {
-  const res = await fetch("/api/areas");
-  const data = await res.json();
-  return data.areas as string[];
-}
-
-async function fetchPrefectures(area: string): Promise<string[]> {
-  const res = await fetch(
-    `/api/prefectures?area=${encodeURIComponent(area)}`,
-  );
-  const data = await res.json();
-  return data.prefectures as string[];
-}
-
-async function fetchLines(prefecture: string): Promise<string[]> {
-  const res = await fetch(
-    `/api/lines?prefecture=${encodeURIComponent(prefecture)}`,
-  );
-  const data = await res.json();
-  return data.lines as string[];
-}
-
-async function fetchStations(line: string): Promise<Station[]> {
-  const res = await fetch(
-    `/api/stations?line=${encodeURIComponent(line)}`,
-  );
-  const data = await res.json();
-  return data.stations as Station[];
-}
-
-async function fetchSpots(prefecture: string): Promise<Spot[]> {
-  const res = await fetch(
-    `/api/spots?prefecture=${encodeURIComponent(prefecture)}`,
-  );
-  const data = await res.json();
-  return data.spots as Spot[];
-}
+import type { GachaResult, Station, Spot } from "@/lib/types";
+import { TOURISM_LABELS } from "@/lib/tourism-labels";
+import { pickRandom } from "@/lib/pick-random";
+import { fetchAreas } from "@/lib/fetch-areas";
+import { fetchPrefectures } from "@/lib/fetch-prefectures";
+import { fetchLines } from "@/lib/fetch-lines";
+import { fetchStations } from "@/lib/fetch-stations";
+import { fetchSpots } from "@/lib/fetch-spots";
 
 export default function OdekakeGachaPage() {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
