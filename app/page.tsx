@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Dices, Loader2, MapPin, RefreshCw, Train } from "lucide-react";
+import { Dices, Loader2, MapPin, RefreshCw, Sparkles, Target, Train } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -147,9 +148,25 @@ export default function OdekakeGachaPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">
-      <h1 className="mb-6 text-3xl font-bold tracking-tight">
-        おでかけガチャ
-      </h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">おでかけガチャ</h1>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/darts"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+          >
+            <Target className="size-3" />
+            ダーツ
+          </Link>
+          <Link
+            href="/omikuji"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+          >
+            <Sparkles className="size-3" />
+            おみくじ
+          </Link>
+        </div>
+      </div>
 
       <div className="space-y-4">
         {/* エリア選択 */}
