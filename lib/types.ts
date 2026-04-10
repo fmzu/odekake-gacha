@@ -33,3 +33,8 @@ export type Spot = {
   lat: number;
   lon: number;
 };
+
+export type FilterOptions = {
+  area?: string;
+  prefecture?: string;
+};

@@ -2,10 +2,19 @@
 
 import { MapPin, RefreshCw, Train } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { fallbackRandomSpot } from "@/lib/fallback-random-spot";
 import { fallbackRandomStation } from "@/lib/fallback-random-station";
+import { fetchAreas } from "@/lib/fetch-areas";
+import { fetchPrefectures } from "@/lib/fetch-prefectures";
 import type { GachaResult } from "@/lib/types";
 import { BoardingPass } from "./boarding-pass";
 import { FoldedPaper, type FoldedPaperState } from "./folded-paper";
@@ -36,6 +45,53 @@ export default function OmikujiPage() {
   const [error, setError] = useState<string | null>(null);
   const runningRef = useRef(false);
 
+  // フィルタ状態
+  const [areas, setAreas] = useState<string[]>([]);
+  const [prefectures, setPrefectures] = useState<string[]>([]);
+  const [selectedArea, setSelectedArea] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedPrefecture, setSelectedPrefecture] = useState<
+    string | undefined
+  >(undefined);
+
+  // エリア一覧を初回ロード
+  useEffect(() => {
+    fetchAreas()
+      .then(setAreas)
+      .catch(() => {});
+  }, []);
+
+  // エリア選択時に都道府県一覧を取得
+  useEffect(() => {
+    if (!selectedArea) {
+      setPrefectures([]);
+      return;
+    }
+    fetchPrefectures(selectedArea)
+      .then(setPrefectures)
+      .catch(() => setPrefectures([]));
+  }, [selectedArea]);
+
+  const handleAreaChange = useCallback((value: string) => {
+    if (value === "__all__") {
+      setSelectedArea(undefined);
+      setSelectedPrefecture(undefined);
+      setPrefectures([]);
+    } else {
+      setSelectedArea(value);
+      setSelectedPrefecture(undefined);
+    }
+  }, []);
+
+  const handlePrefectureChange = useCallback((value: string) => {
+    if (value === "__all__") {
+      setSelectedPrefecture(undefined);
+    } else {
+      setSelectedPrefecture(value);
+    }
+  }, []);
+
   const handleModeChange = useCallback((next: Mode) => {
     if (runningRef.current) return;
     setMode(next);
@@ -51,10 +107,14 @@ export default function OmikujiPage() {
     setError(null);
 
     // API fetch をボタンタップと同時に裏で開始
+    const filter = {
+      area: selectedArea,
+      prefecture: selectedPrefecture,
+    };
     const fetchPromise: Promise<GachaResult> =
       mode === "station"
-        ? fallbackRandomStation().then(({ station }) => station)
-        : fallbackRandomSpot().then(({ spot }) => spot);
+        ? fallbackRandomStation(filter).then(({ station }) => station)
+        : fallbackRandomSpot(filter).then(({ spot }) => spot);
 
     // fetch の結果を settled ラップで監視する（API 遅延検知用）
     let fetched: GachaResult | null = null;
@@ -111,7 +171,7 @@ export default function OmikujiPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [mode]);
+  }, [mode, selectedArea, selectedPrefecture]);
 
   const handleRetry = useCallback(() => {
     void handleDraw();
@@ -156,6 +216,47 @@ export default function OmikujiPage() {
       <p className="mb-2 text-sm text-slate-600">
         御神籤箱から紙を引いて、今日の行き先を占いましょう。
       </p>
+
+      {/* 範囲絞り込み */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="shrink-0 text-xs font-medium text-[#8a6d3b]">
+          範囲
+        </span>
+        <Select
+          value={selectedArea ?? "__all__"}
+          onValueChange={handleAreaChange}
+          disabled={isBusy}
+        >
+          <SelectTrigger size="sm" className="h-7 min-w-[5rem] flex-1 border-[#d4c5a0] bg-[#fdf6e3]/60 text-xs text-[#3a1d0a]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">全国</SelectItem>
+            {areas.map((a) => (
+              <SelectItem key={a} value={a}>
+                {a}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={selectedPrefecture ?? "__all__"}
+          onValueChange={handlePrefectureChange}
+          disabled={isBusy || !selectedArea}
+        >
+          <SelectTrigger size="sm" className="h-7 min-w-[5rem] flex-1 border-[#d4c5a0] bg-[#fdf6e3]/60 text-xs text-[#3a1d0a]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">--</SelectItem>
+            {prefectures.map((p) => (
+              <SelectItem key={p} value={p}>
+                {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* 箱 ↔ チケットを同じスペースで差し替える */}
       <div className="relative rounded-xl bg-gradient-to-b from-[#fdf6e3] to-[#f0e4c2] py-4">
