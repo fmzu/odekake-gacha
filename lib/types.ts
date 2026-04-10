@@ -9,6 +9,7 @@ export type SpotResult = {
   type: "spot";
   name: string;
   tourism: string;
+  prefecture?: string;
   lat: number;
   lon: number;
 };
