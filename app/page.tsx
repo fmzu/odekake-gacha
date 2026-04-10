@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, RefreshCw, Train } from "lucide-react";
+import { MapPin, RefreshCw, Train, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -256,6 +256,20 @@ export default function OmikujiPage() {
             ))}
           </SelectContent>
         </Select>
+        {selectedArea && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedArea(undefined);
+              setSelectedPrefecture(undefined);
+              setPrefectures([]);
+            }}
+            disabled={isBusy}
+            className="flex size-7 shrink-0 items-center justify-center rounded-md border border-[#d4c5a0] bg-[#fdf6e3]/60 text-[#8a6d3b] hover:bg-[#f0e4c2] disabled:opacity-50"
+          >
+            <X className="size-3" />
+          </button>
+        )}
       </div>
 
       {/* 箱 ↔ チケットを同じスペースで差し替える */}
