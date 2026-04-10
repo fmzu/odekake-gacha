@@ -1,306 +1,251 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Dices, Loader2, MapPin, RefreshCw, Sparkles, Target, Train } from "lucide-react";
-import Link from "next/link";
-import { useCallback, useState } from "react";
+import { MapPin, RefreshCw, Train } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { GachaResult, Station, Spot } from "@/lib/types";
-import { TOURISM_LABELS } from "@/lib/tourism-labels";
-import { pickRandom } from "@/lib/pick-random";
-import { fetchAreas } from "@/lib/fetch-areas";
-import { fetchPrefectures } from "@/lib/fetch-prefectures";
-import { fetchLines } from "@/lib/fetch-lines";
-import { fetchStations } from "@/lib/fetch-stations";
-import { fetchSpots } from "@/lib/fetch-spots";
+import { fallbackRandomSpot } from "@/lib/fallback-random-spot";
+import { fallbackRandomStation } from "@/lib/fallback-random-station";
+import type { GachaResult } from "@/lib/types";
+import { BoardingPass } from "./boarding-pass";
+import { FoldedPaper, type FoldedPaperState } from "./folded-paper";
+import { OmikujiBox } from "./omikuji-box";
+import { StationTicket } from "./station-ticket";
 
-export default function OdekakeGachaPage() {
-  const [selectedArea, setSelectedArea] = useState<string | null>(null);
-  const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(
-    null,
-  );
-  const [selectedCategory, setSelectedCategory] = useState<
-    "station" | "spot"
-  >("station");
+type Mode = "station" | "spot";
+type SequenceState =
+  | "idle"
+  | "drawing"
+  | "waiting"
+  | "extracting"
+  | "revealing"
+  | "done";
+
+// 演出時間の固定値（ミリ秒）
+const DRAWING_DURATION_MS = 500;
+const WAITING_MIN_DURATION_MS = 1000;
+const EXTRACTING_DURATION_MS = 1500;
+const REVEALING_DURATION_MS = 1200;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export default function OmikujiPage() {
+  const [mode, setMode] = useState<Mode>("station");
+  const [sequence, setSequence] = useState<SequenceState>("idle");
   const [result, setResult] = useState<GachaResult | null>(null);
-  const [cachedStations, setCachedStations] = useState<Station[] | null>(null);
-  const [cachedSpots, setCachedSpots] = useState<Spot[] | null>(null);
-  const [isGachaing, setIsGachaing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const runningRef = useRef(false);
 
-  const areasQuery = useQuery({
-    queryKey: ["odekake-gacha", "areas"],
-    queryFn: fetchAreas,
-  });
-
-  const prefecturesQuery = useQuery({
-    queryKey: ["odekake-gacha", "prefectures", selectedArea],
-    queryFn: () => fetchPrefectures(selectedArea!),
-    enabled: !!selectedArea,
-  });
-
-  const handleAreaChange = (area: string) => {
-    setSelectedArea(area);
-    setSelectedPrefecture(null);
-    setResult(null);
-    setCachedStations(null);
-    setCachedSpots(null);
-    setError(null);
-  };
-
-  const handlePrefectureChange = (prefecture: string) => {
-    setSelectedPrefecture(prefecture);
-    setResult(null);
-    setCachedStations(null);
-    setCachedSpots(null);
-    setError(null);
-  };
-
-  const handleCategoryChange = (category: "station" | "spot") => {
-    setSelectedCategory(category);
+  const handleModeChange = useCallback((next: Mode) => {
+    if (runningRef.current) return;
+    setMode(next);
     setResult(null);
     setError(null);
-  };
+    setSequence("idle");
+  }, []);
 
-
-  const handleGacha = useCallback(async () => {
-    if (!selectedPrefecture) return;
+  const handleDraw = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
     setResult(null);
     setError(null);
-    setIsGachaing(true);
+
+    // API fetch をボタンタップと同時に裏で開始
+    const fetchPromise: Promise<GachaResult> =
+      mode === "station"
+        ? fallbackRandomStation().then(({ station }) => station)
+        : fallbackRandomSpot().then(({ spot }) => spot);
+
+    // fetch の結果を settled ラップで監視する（API 遅延検知用）
+    let fetched: GachaResult | null = null;
+    let fetchError: unknown = null;
+    let settled = false;
+    const trackedFetch = fetchPromise.then(
+      (r) => {
+        fetched = r;
+        settled = true;
+        return r;
+      },
+      (err) => {
+        fetchError = err;
+        settled = true;
+        throw err;
+      },
+    );
+    // unhandled rejection を防ぐ
+    trackedFetch.catch(() => {});
 
     try {
-      if (selectedCategory === "station") {
-        const lines = await fetchLines(selectedPrefecture);
-        if (lines.length === 0) {
-          setError("路線が見つかりませんでした。別のエリアを試してみてください。");
-          setIsGachaing(false);
-          return;
-        }
-        const randomLine = pickRandom(lines);
-        const allStations = await fetchStations(randomLine);
-        const stations = allStations.filter(
-          (s) => s.prefecture === selectedPrefecture,
-        );
-        if (stations.length === 0) {
-          setError("駅が見つかりませんでした。もう一度お試しください。");
-          setIsGachaing(false);
-          return;
-        }
-        setCachedStations(stations);
-        const station = pickRandom(stations);
-        setResult({
-          type: "station",
-          name: station.name,
-          line: randomLine,
-          prefecture: station.prefecture,
-        });
-      } else {
-        const spots = await fetchSpots(selectedPrefecture);
-        if (spots.length === 0) {
-          setError("観光地が見つかりませんでした。別のエリアを試してみてください。");
-          setIsGachaing(false);
-          return;
-        }
-        setCachedSpots(spots);
-        const spot = pickRandom(spots);
-        setResult({
-          type: "spot",
-          name: spot.name,
-          tourism: spot.tourism,
-          lat: spot.lat,
-          lon: spot.lon,
-        });
+      // 1. 引き始め段階（固定 0.5s）— 箱の押下フィードバック演出。紙は箱の中に隠れたまま
+      setSequence("drawing");
+      await sleep(DRAWING_DURATION_MS);
+
+      // 2. waiting: API resolve を待つ。箱は揺れ続け、紙は隠れたまま
+      //    最低 WAITING_MIN_DURATION_MS は必ず待つ
+      setSequence("waiting");
+      await sleep(WAITING_MIN_DURATION_MS);
+      while (!settled) {
+        await sleep(100);
       }
+
+      if (fetchError || !fetched) {
+        throw fetchError ?? new Error("no result");
+      }
+
+      // 3. extracting: 紙が一気に箱から滑らかに出てくる（固定 1.5s）
+      setSequence("extracting");
+      await sleep(EXTRACTING_DURATION_MS);
+
+      // 4. revealing: チケットへ展開（固定 1.2s）
+      setResult(fetched);
+      setSequence("revealing");
+      await sleep(REVEALING_DURATION_MS);
+
+      // 5. 完了
+      setSequence("done");
     } catch {
-      setError("サーバーに接続できませんでした。しばらくしてからお試しください。");
+      setError(
+        "サーバーに接続できませんでした。しばらくしてからお試しください。",
+      );
+      setSequence("idle");
+    } finally {
+      runningRef.current = false;
     }
-    setIsGachaing(false);
-  }, [selectedPrefecture, selectedCategory]);
+  }, [mode]);
 
   const handleRetry = useCallback(() => {
-    if (selectedCategory === "station") {
-      handleGacha();
-    } else if (cachedSpots && cachedSpots.length > 0) {
-      const spot = pickRandom(cachedSpots);
-      setResult({
-        type: "spot",
-        name: spot.name,
-        tourism: spot.tourism,
-        lat: spot.lat,
-        lon: spot.lon,
-      });
-    }
-  }, [selectedCategory, cachedSpots, handleGacha]);
+    void handleDraw();
+  }, [handleDraw]);
 
-  const canGacha = !!selectedPrefecture && !isGachaing;
-  const hasCache =
-    (selectedCategory === "station" && cachedStations && cachedStations.length > 0) ||
-    (selectedCategory === "spot" && cachedSpots && cachedSpots.length > 0);
+  const subText = (() => {
+    if (sequence === "drawing" || sequence === "extracting") {
+      return "紙を引いています…";
+    }
+    if (sequence === "waiting") {
+      return mode === "station" ? "探しています…" : "いい場所を探してる…";
+    }
+    if (sequence === "revealing") return "チケットを開いています…";
+    return null;
+  })();
+
+  const isBusy = sequence !== "idle" && sequence !== "done";
+
+  const paperState: FoldedPaperState = (() => {
+    // drawing / waiting 中は紙は完全に箱の中に隠れている
+    if (
+      sequence === "idle" ||
+      sequence === "drawing" ||
+      sequence === "waiting"
+    ) {
+      return "hidden";
+    }
+    if (sequence === "extracting") return "extracting";
+    // revealing / done では紙を隠してチケットにバトンタッチ
+    return "hidden";
+  })();
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">おでかけガチャ</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/darts"
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
-          >
-            <Target className="size-3" />
-            ダーツ
-          </Link>
-          <Link
-            href="/omikuji"
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
-          >
-            <Sparkles className="size-3" />
-            おみくじ
-          </Link>
-        </div>
+      {/* ヘッダー */}
+      <div className="mb-4">
+        <h1 className="text-3xl font-bold tracking-tight text-[#3a1d0a]">
+          おでかけおみくじ
+        </h1>
       </div>
 
-      <div className="space-y-4">
-        {/* エリア選択 */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">エリア</label>
-          <Select
-            value={selectedArea ?? undefined}
-            onValueChange={handleAreaChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="エリアを選択" />
-            </SelectTrigger>
-            <SelectContent>
-              {areasQuery.data?.map((area) => (
-                <SelectItem key={area} value={area}>
-                  {area}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <p className="mb-2 text-sm text-slate-600">
+        御神籤箱から紙を引いて、今日の行き先を占いましょう。
+      </p>
 
-        {/* 都道府県選択 */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">都道府県</label>
-          <Select
-            value={selectedPrefecture ?? undefined}
-            onValueChange={handlePrefectureChange}
-            disabled={!selectedArea}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue
-                placeholder={
-                  selectedArea ? "都道府県を選択" : "エリアを先に選択"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {prefecturesQuery.data?.map((pref) => (
-                <SelectItem key={pref} value={pref}>
-                  {pref}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* カテゴリ選択 */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">カテゴリ</label>
-          <div className="flex gap-2">
-            <Button
-              variant={selectedCategory === "station" ? "default" : "outline"}
-              onClick={() => handleCategoryChange("station")}
-              className="flex-1"
+      {/* 箱 ↔ チケットを同じスペースで差し替える */}
+      <div className="relative rounded-xl bg-gradient-to-b from-[#fdf6e3] to-[#f0e4c2] py-4">
+        <AnimatePresence mode="wait">
+          {sequence !== "revealing" && sequence !== "done" ? (
+            <motion.div
+              key="box"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
             >
-              <Train className="size-4" />
-              駅
-            </Button>
-            <Button
-              variant={selectedCategory === "spot" ? "default" : "outline"}
-              onClick={() => handleCategoryChange("spot")}
-              className="flex-1"
-            >
-              <MapPin className="size-4" />
-              観光地
-            </Button>
-          </div>
-        </div>
+              <OmikujiBox state={sequence} onDrawClick={handleDraw}>
+                <FoldedPaper state={paperState} />
+              </OmikujiBox>
 
-        {/* ガチャボタン */}
-        <Button
-          size="lg"
-          className="w-full"
-          disabled={!canGacha}
-          onClick={handleGacha}
-        >
-          {isGachaing ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              抽選中...
-            </>
+              {/* サブテキスト */}
+              <p className="min-h-[1.25rem] text-center text-xs text-[#8a6d3b]">
+                {subText ?? ""}
+              </p>
+            </motion.div>
           ) : (
-            <>
-              <Dices className="size-4" />
-              ガチャ！
-            </>
-          )}
-        </Button>
-
-        {/* エラー表示 */}
-        {error && (
-          <p className="text-center text-sm text-destructive">{error}</p>
-        )}
-
-        {/* 結果表示 */}
-        {result && !isGachaing && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {result.type === "station" ? (
-                  <Train className="size-5" />
-                ) : (
-                  <MapPin className="size-5" />
-                )}
-                {result.type === "station" ? "駅" : "観光地"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-2xl font-bold">{result.name}</p>
-              {result.type === "station" ? (
-                <p className="text-sm text-muted-foreground">
-                  {result.line}
-                </p>
+            <motion.div
+              key="ticket"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="flex min-h-[340px] items-center justify-center px-4"
+            >
+              {mode === "station" ? (
+                <StationTicket
+                  state="revealed"
+                  result={result?.type === "station" ? result : null}
+                />
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {TOURISM_LABELS[result.tourism] ?? result.tourism}
-                </p>
+                <BoardingPass
+                  state="revealed"
+                  result={result?.type === "spot" ? result : null}
+                />
               )}
-            </CardContent>
-          </Card>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-        {/* もう一回ボタン */}
-        {result && !isGachaing && hasCache && (
+      {/* エラー */}
+      {error && (
+        <p className="mt-3 text-center text-sm text-destructive">{error}</p>
+      )}
+
+      {/* もう一回 */}
+      {sequence === "done" && (
+        <div className="mt-4">
           <Button
             variant="outline"
             className="w-full"
             onClick={handleRetry}
           >
             <RefreshCw className="size-4" />
-            もう一回！
+            もう一回引く
           </Button>
-        )}
+        </div>
+      )}
+
+      {/* モード切替（画面下部） */}
+      <div className="mt-6">
+        <label className="mb-2 block text-sm font-medium text-[#3a1d0a]">
+          モード
+        </label>
+        <div className="flex gap-2">
+          <Button
+            variant={mode === "station" ? "default" : "outline"}
+            onClick={() => handleModeChange("station")}
+            className="flex-1"
+            disabled={isBusy}
+          >
+            <Train className="size-4" />
+            駅
+          </Button>
+          <Button
+            variant={mode === "spot" ? "default" : "outline"}
+            onClick={() => handleModeChange("spot")}
+            className="flex-1"
+            disabled={isBusy}
+          >
+            <MapPin className="size-4" />
+            観光地
+          </Button>
+        </div>
       </div>
 
       {/* フッター */}
