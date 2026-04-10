@@ -4,6 +4,7 @@ export async function fetchStations(line: string): Promise<Station[]> {
   const res = await fetch(
     `/api/stations?line=${encodeURIComponent(line)}`,
   );
+  if (!res.ok) throw new Error(`status ${res.status}`);
   const data = await res.json();
   return data.stations as Station[];
 }
