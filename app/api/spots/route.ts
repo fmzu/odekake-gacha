@@ -13,9 +13,13 @@ async function fetchOverpass(query: string): Promise<Response> {
     try {
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "odekake-gacha/1.0",
+        },
         body: `data=${encodeURIComponent(query)}`,
         signal: AbortSignal.timeout(15000),
+        cache: "no-store",
       })
       if (res.ok) return res
     } catch {}
