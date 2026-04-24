@@ -1,8 +1,9 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { MapPin, RefreshCw, Train, X } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -46,8 +47,6 @@ export default function OmikujiPage() {
   const runningRef = useRef(false)
 
   // フィルタ状態
-  const [areas, setAreas] = useState<string[]>([])
-  const [prefectures, setPrefectures] = useState<string[]>([])
   const [selectedArea, setSelectedArea] = useState<string | undefined>(
     undefined,
   )
@@ -55,29 +54,25 @@ export default function OmikujiPage() {
     string | undefined
   >(undefined)
 
-  // エリア一覧を初回ロード
-  useEffect(() => {
-    fetchAreas()
-      .then(setAreas)
-      .catch(() => {})
-  }, [])
+  const { data: areas = [] } = useQuery({
+    queryKey: ["areas"],
+    queryFn: fetchAreas,
+    staleTime: Number.POSITIVE_INFINITY,
+  })
 
-  // エリア選択時に都道府県一覧を取得
-  useEffect(() => {
-    if (!selectedArea) {
-      setPrefectures([])
-      return
-    }
-    fetchPrefectures(selectedArea)
-      .then(setPrefectures)
-      .catch(() => setPrefectures([]))
-  }, [selectedArea])
+  const { data: fetchedPrefectures = [] } = useQuery({
+    queryKey: ["prefectures", selectedArea],
+    queryFn: () => fetchPrefectures(selectedArea ?? ""),
+    enabled: !!selectedArea,
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+
+  const prefectures = selectedArea ? fetchedPrefectures : []
 
   const handleAreaChange = useCallback((value: string) => {
     if (value === "__all__") {
       setSelectedArea(undefined)
       setSelectedPrefecture(undefined)
-      setPrefectures([])
     } else {
       setSelectedArea(value)
       setSelectedPrefecture(undefined)
@@ -268,7 +263,6 @@ export default function OmikujiPage() {
             onClick={() => {
               setSelectedArea(undefined)
               setSelectedPrefecture(undefined)
-              setPrefectures([])
             }}
             disabled={isBusy}
             className="flex size-7 shrink-0 items-center justify-center rounded-md border border-[#d4c5a0] bg-[#fdf6e3]/60 text-[#8a6d3b] hover:bg-[#f0e4c2] disabled:opacity-50"
