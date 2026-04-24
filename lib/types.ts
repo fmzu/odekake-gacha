@@ -38,3 +38,5 @@ export type FilterOptions = {
   area?: string
   prefecture?: string
 }
+
+export type Mode = "station" | "spot"

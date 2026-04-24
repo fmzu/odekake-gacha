@@ -2,6 +2,7 @@ import { fetchAreas } from "@/lib/fetch-areas"
 import { fetchPrefectures } from "@/lib/fetch-prefectures"
 import { fetchSpots } from "@/lib/fetch-spots"
 import { pickRandom } from "@/lib/pick-random"
+import { retryWithAttempts } from "@/lib/retry-with-attempts"
 import type { FilterOptions, SpotResult } from "@/lib/types"
 
 /**
@@ -15,14 +16,21 @@ import type { FilterOptions, SpotResult } from "@/lib/types"
  */
 const MAX_ATTEMPTS = 5
 
-export async function fallbackRandomSpot(filter?: FilterOptions): Promise<{
+type SpotWithCoords = {
   spot: SpotResult
   lon: number
   lat: number
-}> {
-  // prefecture が指定されていれば area/prefecture 選択をスキップ
+}
+
+export async function fallbackRandomSpot(
+  filter?: FilterOptions,
+): Promise<SpotWithCoords> {
   if (filter?.prefecture) {
-    return fallbackWithPrefecture(filter.prefecture)
+    return retryWithAttempts(
+      () => pickSpotFromPrefecture(filter.prefecture as string),
+      MAX_ATTEMPTS,
+      `fallbackRandomSpot(prefecture=${filter.prefecture})`,
+    )
   }
 
   const areas = filter?.area ? [filter.area] : await fetchAreas()
@@ -30,66 +38,36 @@ export async function fallbackRandomSpot(filter?: FilterOptions): Promise<{
     throw new Error("areas is empty")
   }
 
-  let lastError: unknown = null
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    try {
+  return retryWithAttempts(
+    async () => {
       const area = pickRandom(areas)
       const prefectures = await fetchPrefectures(area)
-      if (prefectures.length === 0) continue
+      if (prefectures.length === 0) return null
       const prefecture = pickRandom(prefectures)
-
-      const spots = await fetchSpots(prefecture)
-      if (spots.length === 0) continue
-
-      const spot = pickRandom(spots)
-      return {
-        spot: {
-          type: "spot",
-          name: spot.name,
-          tourism: spot.tourism,
-          prefecture,
-          lat: spot.lat,
-          lon: spot.lon,
-        },
-        lon: spot.lon,
-        lat: spot.lat,
-      }
-    } catch (err) {
-      lastError = err
-    }
-  }
-  throw new Error(
-    `fallbackRandomSpot failed after ${MAX_ATTEMPTS} attempts: ${String(lastError)}`,
+      return pickSpotFromPrefecture(prefecture)
+    },
+    MAX_ATTEMPTS,
+    "fallbackRandomSpot",
   )
 }
 
-async function fallbackWithPrefecture(
+async function pickSpotFromPrefecture(
   prefecture: string,
-): Promise<{ spot: SpotResult; lon: number; lat: number }> {
-  let lastError: unknown = null
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    try {
-      const spots = await fetchSpots(prefecture)
-      if (spots.length === 0) continue
+): Promise<SpotWithCoords | null> {
+  const spots = await fetchSpots(prefecture)
+  if (spots.length === 0) return null
 
-      const spot = pickRandom(spots)
-      return {
-        spot: {
-          type: "spot",
-          name: spot.name,
-          tourism: spot.tourism,
-          prefecture,
-          lat: spot.lat,
-          lon: spot.lon,
-        },
-        lon: spot.lon,
-        lat: spot.lat,
-      }
-    } catch (err) {
-      lastError = err
-    }
+  const spot = pickRandom(spots)
+  return {
+    spot: {
+      type: "spot",
+      name: spot.name,
+      tourism: spot.tourism,
+      prefecture,
+      lat: spot.lat,
+      lon: spot.lon,
+    },
+    lon: spot.lon,
+    lat: spot.lat,
   }
-  throw new Error(
-    `fallbackRandomSpot(prefecture=${prefecture}) failed after ${MAX_ATTEMPTS} attempts: ${String(lastError)}`,
-  )
 }

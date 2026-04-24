@@ -21,13 +21,9 @@ type StationTicketProps = {
 export function StationTicket({ state, result }: StationTicketProps) {
   const visible = state === "unfurling" || state === "revealed"
   // チケット番号は result が切り替わったタイミングで毎回引き直す
-  const ticketNumber = useMemo(
-    () => generateTicketNumber(),
-    // result.name が変われば新しい番号に
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [result?.name],
-  )
-  const today = useMemo(() => formatTicketDate(new Date()), [result?.name])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: result を意図的に再計算トリガーとして使用
+  const ticketNumber = useMemo(() => generateTicketNumber(), [result])
+  const today = formatTicketDate(new Date())
 
   return (
     <AnimatePresence>

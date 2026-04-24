@@ -1,8 +1,5 @@
-import type { Station } from "@/lib/types"
+import { fetchFromApi } from "./fetch-from-api"
+import type { Station } from "./types"
 
-export async function fetchStations(line: string): Promise<Station[]> {
-  const res = await fetch(`/api/stations?line=${encodeURIComponent(line)}`)
-  if (!res.ok) throw new Error(`status ${res.status}`)
-  const data = await res.json()
-  return data.stations as Station[]
-}
+export const fetchStations = (line: string) =>
+  fetchFromApi<Station>("stations", { line }, "stations")

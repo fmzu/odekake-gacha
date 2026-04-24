@@ -1,6 +1,3 @@
-export async function fetchAreas(): Promise<string[]> {
-  const res = await fetch("/api/areas")
-  if (!res.ok) throw new Error(`status ${res.status}`)
-  const data = await res.json()
-  return data.areas as string[]
-}
+import { fetchFromApi } from "./fetch-from-api"
+
+export const fetchAreas = () => fetchFromApi<string>("areas", {}, "areas")

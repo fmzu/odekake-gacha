@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
+import { PREFECTURES } from "@/lib/prefectures"
 
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
@@ -29,6 +30,10 @@ export async function GET(request: NextRequest) {
       { error: "prefectureパラメータが必要です" },
       { status: 400 },
     )
+  }
+
+  if (!(PREFECTURES as readonly string[]).includes(prefecture)) {
+    return NextResponse.json({ error: "不正な都道府県名です" }, { status: 400 })
   }
 
   const query = `

@@ -1,10 +1,5 @@
-import type { Spot } from "@/lib/types"
+import { fetchFromApi } from "./fetch-from-api"
+import type { Spot } from "./types"
 
-export async function fetchSpots(prefecture: string): Promise<Spot[]> {
-  const res = await fetch(
-    `/api/spots?prefecture=${encodeURIComponent(prefecture)}`,
-  )
-  if (!res.ok) throw new Error(`status ${res.status}`)
-  const data = await res.json()
-  return data.spots as Spot[]
-}
+export const fetchSpots = (prefecture: string) =>
+  fetchFromApi<Spot>("spots", { prefecture }, "spots")

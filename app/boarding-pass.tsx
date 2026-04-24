@@ -20,12 +20,9 @@ type BoardingPassProps = {
  */
 export function BoardingPass({ state, result }: BoardingPassProps) {
   const visible = state === "unfurling" || state === "revealed"
-  const ticketNumber = useMemo(
-    () => generateTicketNumber(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [result?.name],
-  )
-  const today = useMemo(() => formatTicketDate(new Date()), [result?.name])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: result を意図的に再計算トリガーとして使用
+  const ticketNumber = useMemo(() => generateTicketNumber(), [result])
+  const today = formatTicketDate(new Date())
 
   if (!result) return null
 

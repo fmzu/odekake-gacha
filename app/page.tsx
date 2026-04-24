@@ -1,9 +1,8 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
 import { MapPin, RefreshCw, Train, X } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
-import { useCallback, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -12,192 +11,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { fallbackRandomSpot } from "@/lib/fallback-random-spot"
-import { fallbackRandomStation } from "@/lib/fallback-random-station"
-import { fetchAreas } from "@/lib/fetch-areas"
-import { fetchPrefectures } from "@/lib/fetch-prefectures"
-import type { GachaResult } from "@/lib/types"
+import { useFilterState } from "@/hooks/use-filter-state"
+import { useGachaDraw } from "@/hooks/use-gacha-draw"
+import { FILTER_ALL } from "@/lib/constants"
+import type { FilterOptions, Mode } from "@/lib/types"
 import { BoardingPass } from "./boarding-pass"
-import { FoldedPaper, type FoldedPaperState } from "./folded-paper"
+import { FoldedPaper } from "./folded-paper"
 import { OmikujiBox } from "./omikuji-box"
 import { StationTicket } from "./station-ticket"
 
-type Mode = "station" | "spot"
-type SequenceState =
-  | "idle"
-  | "drawing"
-  | "waiting"
-  | "extracting"
-  | "revealing"
-  | "done"
-
-// 演出時間の固定値（ミリ秒）
-const DRAWING_DURATION_MS = 500
-const WAITING_MIN_DURATION_MS = 1000
-const EXTRACTING_DURATION_MS = 1500
-const REVEALING_DURATION_MS = 1200
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
 export default function OmikujiPage() {
   const [mode, setMode] = useState<Mode>("station")
-  const [sequence, setSequence] = useState<SequenceState>("idle")
-  const [result, setResult] = useState<GachaResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const runningRef = useRef(false)
 
-  // フィルタ状態
-  const [selectedArea, setSelectedArea] = useState<string | undefined>(
-    undefined,
+  const {
+    areas,
+    prefectures,
+    selectedArea,
+    selectedPrefecture,
+    handleAreaChange,
+    handlePrefectureChange,
+    resetFilter,
+    isFilterActive,
+  } = useFilterState()
+
+  const filter = useMemo<FilterOptions>(
+    () => ({ area: selectedArea, prefecture: selectedPrefecture }),
+    [selectedArea, selectedPrefecture],
   )
-  const [selectedPrefecture, setSelectedPrefecture] = useState<
-    string | undefined
-  >(undefined)
 
-  const { data: areas = [] } = useQuery({
-    queryKey: ["areas"],
-    queryFn: fetchAreas,
-    staleTime: Number.POSITIVE_INFINITY,
-  })
+  const {
+    sequence,
+    result,
+    error,
+    isBusy,
+    subText,
+    paperState,
+    handleDraw,
+    handleRetry,
+    reset,
+  } = useGachaDraw(mode, filter)
 
-  const { data: fetchedPrefectures = [] } = useQuery({
-    queryKey: ["prefectures", selectedArea],
-    queryFn: () => fetchPrefectures(selectedArea ?? ""),
-    enabled: !!selectedArea,
-    staleTime: Number.POSITIVE_INFINITY,
-  })
-
-  const prefectures = selectedArea ? fetchedPrefectures : []
-
-  const handleAreaChange = useCallback((value: string) => {
-    if (value === "__all__") {
-      setSelectedArea(undefined)
-      setSelectedPrefecture(undefined)
-    } else {
-      setSelectedArea(value)
-      setSelectedPrefecture(undefined)
-    }
-  }, [])
-
-  const handlePrefectureChange = useCallback((value: string) => {
-    if (value === "__all__") {
-      setSelectedPrefecture(undefined)
-    } else {
-      setSelectedPrefecture(value)
-    }
-  }, [])
-
-  const handleModeChange = useCallback((next: Mode) => {
-    if (runningRef.current) return
+  const handleModeChange = (next: Mode) => {
+    if (isBusy) return
     setMode(next)
-    setResult(null)
-    setError(null)
-    setSequence("idle")
-  }, [])
-
-  const handleDraw = useCallback(async () => {
-    if (runningRef.current) return
-    runningRef.current = true
-    setResult(null)
-    setError(null)
-
-    // API fetch をボタンタップと同時に裏で開始
-    const filter = {
-      area: selectedArea,
-      prefecture: selectedPrefecture,
-    }
-    const fetchPromise: Promise<GachaResult> =
-      mode === "station"
-        ? fallbackRandomStation(filter).then(({ station }) => station)
-        : fallbackRandomSpot(filter).then(({ spot }) => spot)
-
-    // fetch の結果を settled ラップで監視する（API 遅延検知用）
-    let fetched: GachaResult | null = null
-    let fetchError: unknown = null
-    let settled = false
-    const trackedFetch = fetchPromise.then(
-      (r) => {
-        fetched = r
-        settled = true
-        return r
-      },
-      (err) => {
-        fetchError = err
-        settled = true
-        throw err
-      },
-    )
-    // unhandled rejection を防ぐ
-    trackedFetch.catch(() => {})
-
-    try {
-      // 1. 引き始め段階（固定 0.5s）— 箱の押下フィードバック演出。紙は箱の中に隠れたまま
-      setSequence("drawing")
-      await sleep(DRAWING_DURATION_MS)
-
-      // 2. waiting: API resolve を待つ。箱は揺れ続け、紙は隠れたまま
-      //    最低 WAITING_MIN_DURATION_MS は必ず待つ
-      setSequence("waiting")
-      await sleep(WAITING_MIN_DURATION_MS)
-      while (!settled) {
-        await sleep(100)
-      }
-
-      if (fetchError || !fetched) {
-        throw fetchError ?? new Error("no result")
-      }
-
-      // 3. extracting: 紙が一気に箱から滑らかに出てくる（固定 1.5s）
-      setSequence("extracting")
-      await sleep(EXTRACTING_DURATION_MS)
-
-      // 4. revealing: チケットへ展開（固定 1.2s）
-      setResult(fetched)
-      setSequence("revealing")
-      await sleep(REVEALING_DURATION_MS)
-
-      // 5. 完了
-      setSequence("done")
-    } catch {
-      setError(
-        "サーバーに接続できませんでした。しばらくしてからお試しください。",
-      )
-      setSequence("idle")
-    } finally {
-      runningRef.current = false
-    }
-  }, [mode, selectedArea, selectedPrefecture])
-
-  const handleRetry = useCallback(() => {
-    void handleDraw()
-  }, [handleDraw])
-
-  const subText = (() => {
-    if (sequence === "drawing" || sequence === "extracting") {
-      return "紙を引いています…"
-    }
-    if (sequence === "waiting") {
-      return mode === "station" ? "探しています…" : "いい場所を探してる…"
-    }
-    if (sequence === "revealing") return "チケットを開いています…"
-    return null
-  })()
-
-  const isBusy = sequence !== "idle" && sequence !== "done"
-
-  const paperState: FoldedPaperState = (() => {
-    // drawing / waiting 中は紙は完全に箱の中に隠れている
-    if (
-      sequence === "idle" ||
-      sequence === "drawing" ||
-      sequence === "waiting"
-    ) {
-      return "hidden"
-    }
-    if (sequence === "extracting") return "extracting"
-    // revealing / done では紙を隠してチケットにバトンタッチ
-    return "hidden"
-  })()
+    reset()
+  }
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">
@@ -218,7 +76,7 @@ export default function OmikujiPage() {
           範囲
         </span>
         <Select
-          value={selectedArea ?? "__all__"}
+          value={selectedArea ?? FILTER_ALL}
           onValueChange={handleAreaChange}
           disabled={isBusy}
         >
@@ -229,7 +87,7 @@ export default function OmikujiPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">全国</SelectItem>
+            <SelectItem value={FILTER_ALL}>全国</SelectItem>
             {areas.map((a) => (
               <SelectItem key={a} value={a}>
                 {a}
@@ -238,7 +96,7 @@ export default function OmikujiPage() {
           </SelectContent>
         </Select>
         <Select
-          value={selectedPrefecture ?? "__all__"}
+          value={selectedPrefecture ?? FILTER_ALL}
           onValueChange={handlePrefectureChange}
           disabled={isBusy || !selectedArea}
         >
@@ -249,7 +107,7 @@ export default function OmikujiPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">--</SelectItem>
+            <SelectItem value={FILTER_ALL}>--</SelectItem>
             {prefectures.map((p) => (
               <SelectItem key={p} value={p}>
                 {p}
@@ -257,13 +115,10 @@ export default function OmikujiPage() {
             ))}
           </SelectContent>
         </Select>
-        {selectedArea && (
+        {isFilterActive && (
           <button
             type="button"
-            onClick={() => {
-              setSelectedArea(undefined)
-              setSelectedPrefecture(undefined)
-            }}
+            onClick={resetFilter}
             disabled={isBusy}
             className="flex size-7 shrink-0 items-center justify-center rounded-md border border-[#d4c5a0] bg-[#fdf6e3]/60 text-[#8a6d3b] hover:bg-[#f0e4c2] disabled:opacity-50"
           >

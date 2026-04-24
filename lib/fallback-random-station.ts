@@ -3,6 +3,7 @@ import { fetchLines } from "@/lib/fetch-lines"
 import { fetchPrefectures } from "@/lib/fetch-prefectures"
 import { fetchStations } from "@/lib/fetch-stations"
 import { pickRandom } from "@/lib/pick-random"
+import { retryWithAttempts } from "@/lib/retry-with-attempts"
 import type { FilterOptions, StationResult } from "@/lib/types"
 
 /**
@@ -16,14 +17,21 @@ import type { FilterOptions, StationResult } from "@/lib/types"
  */
 const MAX_ATTEMPTS = 5
 
-export async function fallbackRandomStation(filter?: FilterOptions): Promise<{
+type StationWithCoords = {
   station: StationResult
   lon: number
   lat: number
-}> {
-  // prefecture が指定されていれば area/prefecture 選択をスキップ
+}
+
+export async function fallbackRandomStation(
+  filter?: FilterOptions,
+): Promise<StationWithCoords> {
   if (filter?.prefecture) {
-    return fallbackWithPrefecture(filter.prefecture)
+    return retryWithAttempts(
+      () => pickStationFromPrefecture(filter.prefecture as string),
+      MAX_ATTEMPTS,
+      `fallbackRandomStation(prefecture=${filter.prefecture})`,
+    )
   }
 
   const areas = filter?.area ? [filter.area] : await fetchAreas()
@@ -31,76 +39,39 @@ export async function fallbackRandomStation(filter?: FilterOptions): Promise<{
     throw new Error("areas is empty")
   }
 
-  let lastError: unknown = null
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    try {
+  return retryWithAttempts(
+    async () => {
       const area = pickRandom(areas)
       const prefectures = await fetchPrefectures(area)
-      if (prefectures.length === 0) continue
+      if (prefectures.length === 0) return null
       const prefecture = pickRandom(prefectures)
-
-      const lines = await fetchLines(prefecture)
-      if (lines.length === 0) continue
-      const line = pickRandom(lines)
-
-      const allStations = await fetchStations(line)
-      const stationsInPref = allStations.filter(
-        (s) => s.prefecture === prefecture,
-      )
-      if (stationsInPref.length === 0) continue
-
-      const station = pickRandom(stationsInPref)
-      return {
-        station: {
-          type: "station",
-          name: station.name,
-          line,
-          prefecture: station.prefecture,
-        },
-        lon: station.x,
-        lat: station.y,
-      }
-    } catch (err) {
-      lastError = err
-    }
-  }
-  throw new Error(
-    `fallbackRandomStation failed after ${MAX_ATTEMPTS} attempts: ${String(lastError)}`,
+      return pickStationFromPrefecture(prefecture)
+    },
+    MAX_ATTEMPTS,
+    "fallbackRandomStation",
   )
 }
 
-async function fallbackWithPrefecture(
+async function pickStationFromPrefecture(
   prefecture: string,
-): Promise<{ station: StationResult; lon: number; lat: number }> {
-  let lastError: unknown = null
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    try {
-      const lines = await fetchLines(prefecture)
-      if (lines.length === 0) continue
-      const line = pickRandom(lines)
+): Promise<StationWithCoords | null> {
+  const lines = await fetchLines(prefecture)
+  if (lines.length === 0) return null
+  const line = pickRandom(lines)
 
-      const allStations = await fetchStations(line)
-      const stationsInPref = allStations.filter(
-        (s) => s.prefecture === prefecture,
-      )
-      if (stationsInPref.length === 0) continue
+  const allStations = await fetchStations(line)
+  const stationsInPref = allStations.filter((s) => s.prefecture === prefecture)
+  if (stationsInPref.length === 0) return null
 
-      const station = pickRandom(stationsInPref)
-      return {
-        station: {
-          type: "station",
-          name: station.name,
-          line,
-          prefecture: station.prefecture,
-        },
-        lon: station.x,
-        lat: station.y,
-      }
-    } catch (err) {
-      lastError = err
-    }
+  const station = pickRandom(stationsInPref)
+  return {
+    station: {
+      type: "station",
+      name: station.name,
+      line,
+      prefecture: station.prefecture,
+    },
+    lon: station.x,
+    lat: station.y,
   }
-  throw new Error(
-    `fallbackRandomStation(prefecture=${prefecture}) failed after ${MAX_ATTEMPTS} attempts: ${String(lastError)}`,
-  )
 }
