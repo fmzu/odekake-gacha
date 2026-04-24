@@ -70,6 +70,37 @@ export default function OmikujiPage() {
         御神籤箱から紙を引いて、今日の行き先を占いましょう。
       </p>
 
+      {/* モード切替 */}
+      <div className="mb-3">
+        <div className="flex gap-1 rounded-lg border border-[#d4c5a0] bg-[#fdf6e3]/60 p-1">
+          <button
+            type="button"
+            onClick={() => handleModeChange("station")}
+            disabled={isBusy}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
+              mode === "station"
+                ? "bg-white text-[#3a1d0a] shadow-sm"
+                : "text-[#8a6d3b] hover:text-[#3a1d0a]"
+            } disabled:opacity-50`}
+          >
+            <Train className="size-3.5" />駅
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange("spot")}
+            disabled={isBusy}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
+              mode === "spot"
+                ? "bg-white text-[#3a1d0a] shadow-sm"
+                : "text-[#8a6d3b] hover:text-[#3a1d0a]"
+            } disabled:opacity-50`}
+          >
+            <MapPin className="size-3.5" />
+            観光地
+          </button>
+        </div>
+      </div>
+
       {/* 範囲絞り込み */}
       <div className="mb-3 flex items-center gap-2">
         <span className="shrink-0 text-xs font-medium text-[#8a6d3b]">
@@ -186,32 +217,6 @@ export default function OmikujiPage() {
           </Button>
         </div>
       )}
-
-      {/* モード切替（画面下部） */}
-      <div className="mt-6">
-        <label className="mb-2 block text-sm font-medium text-[#3a1d0a]">
-          モード
-        </label>
-        <div className="flex gap-2">
-          <Button
-            variant={mode === "station" ? "default" : "outline"}
-            onClick={() => handleModeChange("station")}
-            className="flex-1"
-            disabled={isBusy}
-          >
-            <Train className="size-4" />駅
-          </Button>
-          <Button
-            variant={mode === "spot" ? "default" : "outline"}
-            onClick={() => handleModeChange("spot")}
-            className="flex-1"
-            disabled={isBusy}
-          >
-            <MapPin className="size-4" />
-            観光地
-          </Button>
-        </div>
-      </div>
 
       {/* フッター */}
       <p className="mt-8 text-center text-xs text-gray-400">
