@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { motion } from "motion/react";
+import { motion } from "motion/react"
 
-export type FoldedPaperState = "hidden" | "extracting" | "done";
+export type FoldedPaperState = "hidden" | "extracting" | "done"
 
 type FoldedPaperProps = {
-  state: FoldedPaperState;
-};
+  state: FoldedPaperState
+}
 
 /**
  * 折りたたまれたおみくじ紙のSVGコンポーネント。
@@ -29,19 +29,19 @@ export function FoldedPaper({ state }: FoldedPaperProps) {
   //     → 紙上端: -30+8 = -22、紙下端: 62+8 = 70
   // - hidden（完全に箱の中）: 紙の上端を穴の下 (画面 y=94) に沈める → y = 124
   //     → 紙上端: -30+124 = 94、紙下端: 62+124 = 186
-  const baseTop = 62 - 94; // -32
-  const hiddenY = 124; // 紙全体を穴の下に沈める（上端が穴の下端 y=94 に一致）
-  const fullY = 8; // 紙の下端を穴の少し下 (y=70) に置き、本体は穴から上に伸びている
+  const baseTop = 62 - 94 // -32
+  const hiddenY = 124 // 紙全体を穴の下に沈める（上端が穴の下端 y=94 に一致）
+  const fullY = 8 // 紙の下端を穴の少し下 (y=70) に置き、本体は穴から上に伸びている
 
   const animate = (() => {
     switch (state) {
       case "hidden":
-        return { y: hiddenY, opacity: 0 };
+        return { y: hiddenY, opacity: 0 }
       case "extracting":
       case "done":
-        return { y: fullY, opacity: 1 };
+        return { y: fullY, opacity: 1 }
     }
-  })();
+  })()
 
   const transition = (() => {
     switch (state) {
@@ -49,14 +49,14 @@ export function FoldedPaper({ state }: FoldedPaperProps) {
         return {
           y: { duration: 1.5, ease: [0.22, 1, 0.36, 1] as const },
           opacity: { duration: 0.3 },
-        };
+        }
       default:
         return {
           y: { duration: 0.3, ease: "easeOut" as const },
           opacity: { duration: 0.3 },
-        };
+        }
     }
-  })();
+  })()
 
   return (
     <motion.div
@@ -134,14 +134,7 @@ export function FoldedPaper({ state }: FoldedPaperProps) {
           strokeWidth="0.5"
         />
         {/* 上帯の金線 */}
-        <line
-          x1="4"
-          y1="8"
-          x2="28"
-          y2="8"
-          stroke="#f5d76e"
-          strokeWidth="0.6"
-        />
+        <line x1="4" y1="8" x2="28" y2="8" stroke="#f5d76e" strokeWidth="0.6" />
 
         {/* 下の朱色帯 */}
         <rect
@@ -199,5 +192,5 @@ export function FoldedPaper({ state }: FoldedPaperProps) {
         </text>
       </svg>
     </motion.div>
-  );
+  )
 }

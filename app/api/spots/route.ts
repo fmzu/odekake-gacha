@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
@@ -17,9 +17,7 @@ async function fetchOverpass(query: string): Promise<Response> {
         signal: AbortSignal.timeout(15000),
       })
       if (res.ok) return res
-    } catch {
-      continue
-    }
+    } catch {}
   }
   throw new Error("All Overpass endpoints failed")
 }
@@ -29,7 +27,7 @@ export async function GET(request: NextRequest) {
   if (!prefecture) {
     return NextResponse.json(
       { error: "prefectureパラメータが必要です" },
-      { status: 400 }
+      { status: 400 },
     )
   }
 
@@ -45,17 +43,23 @@ out body 50;
     const data = await res.json()
     const spots = data.elements
       .filter((el: { tags?: { name?: string } }) => el.tags?.name)
-      .map((el: { tags: { name: string; tourism?: string }; lat: number; lon: number }) => ({
-        name: el.tags.name,
-        tourism: el.tags.tourism ?? "attraction",
-        lat: el.lat,
-        lon: el.lon,
-      }))
+      .map(
+        (el: {
+          tags: { name: string; tourism?: string }
+          lat: number
+          lon: number
+        }) => ({
+          name: el.tags.name,
+          tourism: el.tags.tourism ?? "attraction",
+          lat: el.lat,
+          lon: el.lon,
+        }),
+      )
     return NextResponse.json({ spots })
   } catch {
     return NextResponse.json(
       { error: "サーバーに接続できません" },
-      { status: 502 }
+      { status: 502 },
     )
   }
 }

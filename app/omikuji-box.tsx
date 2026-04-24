@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { motion } from "motion/react";
+import { motion } from "motion/react"
 
 export type OmikujiBoxState =
   | "idle"
@@ -8,29 +8,23 @@ export type OmikujiBoxState =
   | "waiting"
   | "extracting"
   | "revealing"
-  | "done";
+  | "done"
 
 type OmikujiBoxProps = {
-  state: OmikujiBoxState;
-  onDrawClick: () => void;
-  children?: React.ReactNode;
-};
+  state: OmikujiBoxState
+  onDrawClick: () => void
+  children?: React.ReactNode
+}
 
 /**
  * 御神籤箱（木箱）のSVGコンポーネント。
  * 上面の穴から紙が出てくる想定で、紙を引き出している最中 / 待機中に箱が微妙に揺れる。
  * 箱の外側下に「引く」ボタンを配置する。
  */
-export function OmikujiBox({
-  state,
-  onDrawClick,
-  children,
-}: OmikujiBoxProps) {
-  const clickable = state === "idle" || state === "done";
+export function OmikujiBox({ state, onDrawClick, children }: OmikujiBoxProps) {
+  const clickable = state === "idle" || state === "done"
   const isShaking =
-    state === "drawing" ||
-    state === "waiting" ||
-    state === "extracting";
+    state === "drawing" || state === "waiting" || state === "extracting"
 
   return (
     <div className="relative flex flex-col items-center justify-center gap-3 py-10">
@@ -323,5 +317,5 @@ export function OmikujiBox({
         引く
       </button>
     </div>
-  );
+  )
 }

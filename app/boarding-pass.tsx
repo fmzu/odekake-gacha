@@ -1,35 +1,35 @@
-"use client";
+"use client"
 
-import { motion, AnimatePresence } from "motion/react";
-import { useMemo } from "react";
-import { formatTicketDate } from "@/lib/format-ticket-date";
-import { generateTicketNumber } from "@/lib/generate-ticket-number";
-import { TOURISM_LABELS } from "@/lib/tourism-labels";
-import type { SpotResult } from "@/lib/types";
+import { AnimatePresence, motion } from "motion/react"
+import { useMemo } from "react"
+import { formatTicketDate } from "@/lib/format-ticket-date"
+import { generateTicketNumber } from "@/lib/generate-ticket-number"
+import { TOURISM_LABELS } from "@/lib/tourism-labels"
+import type { SpotResult } from "@/lib/types"
 
-type TicketState = "hidden" | "unfurling" | "revealed";
+type TicketState = "hidden" | "unfurling" | "revealed"
 
 type BoardingPassProps = {
-  state: TicketState;
-  result: SpotResult | null;
-};
+  state: TicketState
+  result: SpotResult | null
+}
 
 /**
  * 観光地モード用の航空券（ボーディングパス）風チケット。
  * 左側メイン + 右側スタブの2カラム構成で、中央にパンチ穴風の区切りを配する。
  */
 export function BoardingPass({ state, result }: BoardingPassProps) {
-  const visible = state === "unfurling" || state === "revealed";
+  const visible = state === "unfurling" || state === "revealed"
   const ticketNumber = useMemo(
     () => generateTicketNumber(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [result?.name],
-  );
-  const today = useMemo(() => formatTicketDate(new Date()), [result?.name]);
+  )
+  const today = useMemo(() => formatTicketDate(new Date()), [result?.name])
 
-  if (!result) return null;
+  if (!result) return null
 
-  const tourismLabel = TOURISM_LABELS[result.tourism] ?? result.tourism;
+  const tourismLabel = TOURISM_LABELS[result.tourism] ?? result.tourism
 
   return (
     <AnimatePresence>
@@ -154,5 +154,5 @@ export function BoardingPass({ state, result }: BoardingPassProps) {
         </motion.div>
       )}
     </AnimatePresence>
-  );
+  )
 }

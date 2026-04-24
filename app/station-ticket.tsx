@@ -1,17 +1,17 @@
-"use client";
+"use client"
 
-import { motion, AnimatePresence } from "motion/react";
-import { useMemo } from "react";
-import { formatTicketDate } from "@/lib/format-ticket-date";
-import { generateTicketNumber } from "@/lib/generate-ticket-number";
-import type { StationResult } from "@/lib/types";
+import { AnimatePresence, motion } from "motion/react"
+import { useMemo } from "react"
+import { formatTicketDate } from "@/lib/format-ticket-date"
+import { generateTicketNumber } from "@/lib/generate-ticket-number"
+import type { StationResult } from "@/lib/types"
 
-type TicketState = "hidden" | "unfurling" | "revealed";
+type TicketState = "hidden" | "unfurling" | "revealed"
 
 type StationTicketProps = {
-  state: TicketState;
-  result: StationResult | null;
-};
+  state: TicketState
+  result: StationResult | null
+}
 
 /**
  * 駅モード用の硬券風チケットコンポーネント。
@@ -19,15 +19,15 @@ type StationTicketProps = {
  * チケットがふわっと出てくるアニメーションを再生する。
  */
 export function StationTicket({ state, result }: StationTicketProps) {
-  const visible = state === "unfurling" || state === "revealed";
+  const visible = state === "unfurling" || state === "revealed"
   // チケット番号は result が切り替わったタイミングで毎回引き直す
   const ticketNumber = useMemo(
     () => generateTicketNumber(),
     // result.name が変われば新しい番号に
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [result?.name],
-  );
-  const today = useMemo(() => formatTicketDate(new Date()), [result?.name]);
+  )
+  const today = useMemo(() => formatTicketDate(new Date()), [result?.name])
 
   return (
     <AnimatePresence>
@@ -86,5 +86,5 @@ export function StationTicket({ state, result }: StationTicketProps) {
         </motion.div>
       )}
     </AnimatePresence>
-  );
+  )
 }

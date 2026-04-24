@@ -1,40 +1,40 @@
 export type StationResult = {
-  type: "station";
-  name: string;
-  line: string;
-  prefecture: string;
-};
+  type: "station"
+  name: string
+  line: string
+  prefecture: string
+}
 
 export type SpotResult = {
-  type: "spot";
-  name: string;
-  tourism: string;
-  prefecture?: string;
-  lat: number;
-  lon: number;
-};
+  type: "spot"
+  name: string
+  tourism: string
+  prefecture?: string
+  lat: number
+  lon: number
+}
 
-export type GachaResult = StationResult | SpotResult;
+export type GachaResult = StationResult | SpotResult
 
 export type Station = {
-  name: string;
-  prefecture: string;
-  line: string;
-  x: number;
-  y: number;
-  postal: string;
-  prev: string;
-  next: string;
-};
+  name: string
+  prefecture: string
+  line: string
+  x: number
+  y: number
+  postal: string
+  prev: string
+  next: string
+}
 
 export type Spot = {
-  name: string;
-  tourism: string;
-  lat: number;
-  lon: number;
-};
+  name: string
+  tourism: string
+  lat: number
+  lon: number
+}
 
 export type FilterOptions = {
-  area?: string;
-  prefecture?: string;
-};
+  area?: string
+  prefecture?: string
+}
