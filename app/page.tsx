@@ -60,18 +60,18 @@ export default function OmikujiPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-6">
       {/* ヘッダー */}
-      <div className="mb-4">
+      <div className="mb-1">
         <h1 className="text-3xl font-bold tracking-tight text-[#3a1d0a]">
           おでかけおみくじ
         </h1>
       </div>
 
-      <p className="mb-2 text-sm text-slate-600">
+      <p className="mb-5 text-sm text-slate-600">
         御神籤箱から紙を引いて、今日の行き先を占いましょう。
       </p>
 
       {/* モード切替 */}
-      <div className="mb-3">
+      <div className="mb-5">
         <div className="flex gap-1 rounded-lg border border-[#d4c5a0] bg-[#fdf6e3]/60 p-1">
           <button
             type="button"
@@ -79,7 +79,7 @@ export default function OmikujiPage() {
             disabled={isBusy}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
               mode === "station"
-                ? "bg-white text-[#3a1d0a] shadow-sm"
+                ? "bg-[#fffdf8] text-[#3a1d0a] shadow-sm"
                 : "text-[#8a6d3b] hover:text-[#3a1d0a]"
             } disabled:opacity-50`}
           >
@@ -91,7 +91,7 @@ export default function OmikujiPage() {
             disabled={isBusy}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
               mode === "spot"
-                ? "bg-white text-[#3a1d0a] shadow-sm"
+                ? "bg-[#fffdf8] text-[#3a1d0a] shadow-sm"
                 : "text-[#8a6d3b] hover:text-[#3a1d0a]"
             } disabled:opacity-50`}
           >
@@ -106,6 +106,7 @@ export default function OmikujiPage() {
         <span className="shrink-0 text-xs font-medium text-[#8a6d3b]">
           範囲
         </span>
+
         <Select
           value={selectedArea ?? FILTER_ALL}
           onValueChange={handleAreaChange}
@@ -113,11 +114,11 @@ export default function OmikujiPage() {
         >
           <SelectTrigger
             size="sm"
-            className="h-7 min-w-[5rem] flex-1 border-[#d4c5a0] bg-[#fdf6e3]/60 text-xs text-[#3a1d0a]"
+            className="h-7 min-w-[5rem] flex-1 border-[#d4c5a0] bg-[#fdf6e3]/60 text-sm text-[#3a1d0a]"
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom" position="popper" className="bg-[#fdf6e3] border-[#d4c5a0]">
             <SelectItem value={FILTER_ALL}>全国</SelectItem>
             {areas.map((a) => (
               <SelectItem key={a} value={a}>
@@ -133,12 +134,12 @@ export default function OmikujiPage() {
         >
           <SelectTrigger
             size="sm"
-            className="h-7 min-w-[5rem] flex-1 border-[#d4c5a0] bg-[#fdf6e3]/60 text-xs text-[#3a1d0a]"
+            className="h-7 min-w-[5rem] flex-1 border-[#d4c5a0] bg-[#fdf6e3]/60 text-sm text-[#3a1d0a]"
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={FILTER_ALL}>--</SelectItem>
+          <SelectContent side="bottom" position="popper" className="bg-[#fdf6e3] border-[#d4c5a0]">
+            <SelectItem value={FILTER_ALL}>都道府県</SelectItem>
             {prefectures.map((p) => (
               <SelectItem key={p} value={p}>
                 {p}
@@ -159,7 +160,7 @@ export default function OmikujiPage() {
       </div>
 
       {/* 箱 ↔ チケットを同じスペースで差し替える */}
-      <div className="relative rounded-xl bg-gradient-to-b from-[#fdf6e3] to-[#f0e4c2] py-4">
+      <div className="relative rounded-lg border border-[#d4c5a0] bg-gradient-to-b from-[#fdf6e3] to-[#f0e4c2] py-4">
         <AnimatePresence mode="wait">
           {sequence !== "revealing" && sequence !== "done" ? (
             <motion.div
@@ -211,7 +212,11 @@ export default function OmikujiPage() {
       {/* もう一回 */}
       {sequence === "done" && (
         <div className="mt-4">
-          <Button variant="outline" className="w-full" onClick={handleRetry}>
+          <Button
+            variant="outline"
+            className="w-full border-[#d4c5a0] text-[#3a1d0a]"
+            onClick={handleRetry}
+          >
             <RefreshCw className="size-4" />
             もう一回引く
           </Button>
@@ -219,7 +224,7 @@ export default function OmikujiPage() {
       )}
 
       {/* フッター */}
-      <p className="mt-8 text-center text-xs text-gray-400">
+      <p className="mt-8 text-center text-xs text-[#d4c5a0]">
         Powered by HeartRails Express
       </p>
     </div>

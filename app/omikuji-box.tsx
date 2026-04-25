@@ -307,7 +307,7 @@ export function OmikujiBox({ state, onDrawClick, children }: OmikujiBoxProps) {
         type="button"
         onClick={clickable ? onDrawClick : undefined}
         disabled={!clickable}
-        className={`rounded-full border-2 border-[#4a0510] bg-gradient-to-b from-[#d81e3a] via-[#c8102e] to-[#8a0a1c] px-6 py-1.5 text-sm font-bold text-[#fff8e1] shadow-[0_3px_6px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] ring-1 ring-[#f5d76e] transition ${
+        className={`rounded-lg border-2 border-[#4a0510] bg-gradient-to-b from-[#d81e3a] via-[#c8102e] to-[#8a0a1c] px-10 py-2.5 text-base font-bold text-[#fff8e1] shadow-[0_4px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.4)] ring-2 ring-[#f5d76e] transition ${
           clickable
             ? "hover:brightness-110 active:translate-y-[1px] active:shadow-[0_1px_3px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] cursor-pointer"
             : "cursor-not-allowed opacity-60"
