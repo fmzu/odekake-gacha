@@ -32,7 +32,7 @@ export function BoardingPass({ state, result }: BoardingPassProps) {
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="mx-auto mt-4 w-full max-w-sm"
+          className="mx-auto w-full max-w-sm"
           initial={{ opacity: 0, scale: 0.7, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 6 }}

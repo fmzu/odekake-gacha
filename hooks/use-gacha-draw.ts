@@ -1,8 +1,11 @@
 import { useCallback, useRef, useState } from "react"
-import type { FoldedPaperState } from "@/app/folded-paper"
 import { fallbackRandomSpot } from "@/lib/fallback-random-spot"
 import { fallbackRandomStation } from "@/lib/fallback-random-station"
 import type { FilterOptions, GachaResult, Mode } from "@/lib/types"
+
+// 紙の表示状態（旧 OmikujiBox 演出向けに残している返り値）。
+// SkyScene 演出では未使用だが、状態機械の入出力契約は変えない方針で型を内包する。
+type FoldedPaperState = "hidden" | "extracting" | "done"
 
 type SequenceState =
   | "idle"

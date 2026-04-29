@@ -1,7 +1,6 @@
 "use client"
 
 import { MapPin, RefreshCw, Train, X } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,8 +15,7 @@ import { useGachaDraw } from "@/hooks/use-gacha-draw"
 import { FILTER_ALL } from "@/lib/constants"
 import type { FilterOptions, Mode } from "@/lib/types"
 import { BoardingPass } from "./boarding-pass"
-import { FoldedPaper } from "./folded-paper"
-import { OmikujiBox } from "./omikuji-box"
+import { SkyScene } from "./sky-scene"
 import { StationTicket } from "./station-ticket"
 
 export default function OmikujiPage() {
@@ -45,7 +43,6 @@ export default function OmikujiPage() {
     error,
     isBusy,
     subText,
-    paperState,
     handleDraw,
     handleRetry,
     reset,
@@ -67,7 +64,7 @@ export default function OmikujiPage() {
       </div>
 
       <p className="mb-5 text-sm text-slate-600">
-        御神籤箱から紙を引いて、今日の行き先を占いましょう。
+        空から舞い降りる封筒を受け取って、今日の行き先を占いましょう。
       </p>
 
       {/* モード切替 */}
@@ -118,7 +115,11 @@ export default function OmikujiPage() {
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent side="bottom" position="popper" className="bg-[#fdf6e3] border-[#d4c5a0]">
+          <SelectContent
+            side="bottom"
+            position="popper"
+            className="bg-[#fdf6e3] border-[#d4c5a0]"
+          >
             <SelectItem value={FILTER_ALL}>全国</SelectItem>
             {areas.map((a) => (
               <SelectItem key={a} value={a}>
@@ -138,7 +139,11 @@ export default function OmikujiPage() {
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent side="bottom" position="popper" className="bg-[#fdf6e3] border-[#d4c5a0]">
+          <SelectContent
+            side="bottom"
+            position="popper"
+            className="bg-[#fdf6e3] border-[#d4c5a0]"
+          >
             <SelectItem value={FILTER_ALL}>都道府県</SelectItem>
             {prefectures.map((p) => (
               <SelectItem key={p} value={p}>
@@ -159,49 +164,26 @@ export default function OmikujiPage() {
         )}
       </div>
 
-      {/* 箱 ↔ チケットを同じスペースで差し替える */}
-      <div className="relative rounded-lg border border-[#d4c5a0] bg-gradient-to-b from-[#fdf6e3] to-[#f0e4c2] py-4">
-        <AnimatePresence mode="wait">
-          {sequence !== "revealing" && sequence !== "done" ? (
-            <motion.div
-              key="box"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-            >
-              <OmikujiBox state={sequence} onDrawClick={handleDraw}>
-                <FoldedPaper state={paperState} />
-              </OmikujiBox>
-
-              {/* サブテキスト */}
-              <p className="min-h-[1.25rem] text-center text-xs text-[#8a6d3b]">
-                {subText ?? ""}
-              </p>
-            </motion.div>
+      {/* 抽選シーン（空 + 乗り物 + 封筒 + チケット） */}
+      <div className="relative">
+        <SkyScene state={sequence} onDrawClick={handleDraw}>
+          {mode === "station" ? (
+            <StationTicket
+              state="revealed"
+              result={result?.type === "station" ? result : null}
+            />
           ) : (
-            <motion.div
-              key="ticket"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="flex min-h-[340px] items-center justify-center px-4"
-            >
-              {mode === "station" ? (
-                <StationTicket
-                  state="revealed"
-                  result={result?.type === "station" ? result : null}
-                />
-              ) : (
-                <BoardingPass
-                  state="revealed"
-                  result={result?.type === "spot" ? result : null}
-                />
-              )}
-            </motion.div>
+            <BoardingPass
+              state="revealed"
+              result={result?.type === "spot" ? result : null}
+            />
           )}
-        </AnimatePresence>
+        </SkyScene>
+
+        {/* サブテキスト */}
+        <p className="mt-2 min-h-[1.25rem] text-center text-xs text-[#8a6d3b]">
+          {subText ?? ""}
+        </p>
       </div>
 
       {/* エラー */}

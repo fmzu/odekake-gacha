@@ -29,7 +29,7 @@ export function StationTicket({ state, result }: StationTicketProps) {
     <AnimatePresence>
       {visible && result && (
         <motion.div
-          className="mx-auto mt-4 w-full max-w-xs"
+          className="mx-auto w-full max-w-xs"
           initial={{ opacity: 0, scale: 0.7, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 6 }}
