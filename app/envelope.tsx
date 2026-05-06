@@ -1,17 +1,10 @@
 "use client"
 
 import { motion } from "motion/react"
-
-export type EnvelopeState =
-  | "idle"
-  | "drawing"
-  | "waiting"
-  | "extracting"
-  | "revealing"
-  | "done"
+import type { GachaSequenceState } from "@/lib/types"
 
 type EnvelopeProps = {
-  state: EnvelopeState
+  state: GachaSequenceState
 }
 
 /**
@@ -37,6 +30,7 @@ export function Envelope({ state }: EnvelopeProps) {
 
   return (
     <motion.div
+      aria-hidden="true"
       className="pointer-events-none absolute z-30"
       style={{
         left: "50%",
@@ -62,13 +56,13 @@ export function Envelope({ state }: EnvelopeProps) {
       }
     >
       <svg
+        aria-hidden="true"
         width="44"
         height="32"
         viewBox="0 0 44 32"
         xmlns="http://www.w3.org/2000/svg"
         style={{ display: "block", overflow: "visible" }}
       >
-        <title>封筒</title>
         <defs>
           <linearGradient id="env-body" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#fff8e1" />

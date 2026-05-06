@@ -1,32 +1,55 @@
 "use client"
 
 import { motion } from "motion/react"
+import type { GachaSequenceState } from "@/lib/types"
 import { Envelope } from "./envelope"
 import { VehiclePlane } from "./vehicle-plane"
 
-export type SkySceneState =
-  | "idle"
-  | "drawing"
-  | "waiting"
-  | "extracting"
-  | "revealing"
-  | "done"
-
 type SkySceneProps = {
-  state: SkySceneState
+  state: GachaSequenceState
   onDrawClick: () => void
   children?: React.ReactNode
 }
+
+// 雲アニメーションの設定
+const CLOUD_CONFIGS = [
+  {
+    width: 90,
+    height: 28,
+    top: "18%",
+    left: "12%",
+    backgroundColor: "rgba(255,255,255,0.7)",
+    duration: 8,
+    drift: 10,
+  },
+  {
+    width: 70,
+    height: 22,
+    top: "55%",
+    left: "65%",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    duration: 10,
+    drift: -12,
+  },
+  {
+    width: 50,
+    height: 18,
+    top: "72%",
+    left: "8%",
+    backgroundColor: "rgba(255,255,255,0.55)",
+    duration: 9,
+    drift: 8,
+  },
+] as const
 
 /**
  * 青空を俯瞰する抽選シーン。
  * - 背景に青空 + ふんわりした雲を配置
  * - 飛行機が画面を横切り、封筒を落とす
  * - 封筒が落下 → 開封 → チケット表示（children）へ繋ぐ
- * - 下部の「引く」ボタンで抽選開始（idle / done のときのみ押下可）
+ * - 下部の「引く」ボタンで抽選開始（idle のときのみ表示）
  */
 export function SkyScene({ state, onDrawClick, children }: SkySceneProps) {
-  const clickable = state === "idle" || state === "done"
   const isRevealedPhase = state === "revealing" || state === "done"
 
   return (
@@ -37,54 +60,26 @@ export function SkyScene({ state, onDrawClick, children }: SkySceneProps) {
         style={{ height: 280 }}
       >
         {/* 雲（薄い透明度） */}
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute z-0 rounded-full bg-white/70 blur-[1px]"
-          style={{
-            width: 90,
-            height: 28,
-            top: "18%",
-            left: "12%",
-          }}
-          animate={{ x: [0, 10, 0] }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute z-0 rounded-full bg-white/60 blur-[1px]"
-          style={{
-            width: 70,
-            height: 22,
-            top: "55%",
-            left: "65%",
-          }}
-          animate={{ x: [0, -12, 0] }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute z-0 rounded-full bg-white/55 blur-[1px]"
-          style={{
-            width: 50,
-            height: 18,
-            top: "72%",
-            left: "8%",
-          }}
-          animate={{ x: [0, 8, 0] }}
-          transition={{
-            duration: 9,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        {CLOUD_CONFIGS.map((cloud) => (
+          <motion.div
+            key={`cloud-${cloud.top}-${cloud.left}`}
+            aria-hidden
+            className="pointer-events-none absolute z-0 rounded-full blur-[1px]"
+            style={{
+              width: cloud.width,
+              height: cloud.height,
+              top: cloud.top,
+              left: cloud.left,
+              backgroundColor: cloud.backgroundColor,
+            }}
+            animate={{ x: [0, cloud.drift, 0] }}
+            transition={{
+              duration: cloud.duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
 
         {/* 乗り物（駅・観光地どちらも飛行機） */}
         <VehiclePlane state={state} />
@@ -109,8 +104,7 @@ export function SkyScene({ state, onDrawClick, children }: SkySceneProps) {
         {state === "idle" && (
           <button
             type="button"
-            onClick={clickable ? onDrawClick : undefined}
-            disabled={!clickable}
+            onClick={onDrawClick}
             className="absolute bottom-12 left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-lg border border-[#a04e15] bg-gradient-to-b from-[#f08c2a] to-[#cc5e15] px-10 py-2.5 text-base font-bold text-white shadow-md transition hover:brightness-105 active:translate-y-[1px] active:shadow-sm"
             aria-label="おみくじを引く"
           >

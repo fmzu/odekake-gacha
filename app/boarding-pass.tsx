@@ -14,23 +14,30 @@ type BoardingPassProps = {
   result: SpotResult | null
 }
 
+// バーコード風装飾（44本の縦バー）。位置は固定なので静的に生成。
+const BARCODE_BARS = Array.from({ length: 44 }, (_, i) => ({
+  id: `bar-${i}`,
+  width: i % 4 === 0 ? "3px" : i % 3 === 0 ? "1px" : "2px",
+}))
+
 /**
  * 観光地モード用の航空券（ボーディングパス）風チケット。
  * 左側メイン + 右側スタブの2カラム構成で、中央にパンチ穴風の区切りを配する。
  */
 export function BoardingPass({ state, result }: BoardingPassProps) {
   const visible = state === "unfurling" || state === "revealed"
+  // チケット番号は result が切り替わったタイミングで毎回引き直す
   // biome-ignore lint/correctness/useExhaustiveDependencies: result を意図的に再計算トリガーとして使用
   const ticketNumber = useMemo(() => generateTicketNumber(), [result])
   const today = formatTicketDate(new Date())
 
-  if (!result) return null
-
-  const tourismLabel = TOURISM_LABELS[result.tourism] ?? result.tourism
+  const tourismLabel = result
+    ? (TOURISM_LABELS[result.tourism] ?? result.tourism)
+    : ""
 
   return (
     <AnimatePresence>
-      {visible && (
+      {visible && result && (
         <motion.div
           className="mx-auto w-full max-w-sm"
           initial={{ opacity: 0, scale: 0.7, y: 12 }}
@@ -107,14 +114,11 @@ export function BoardingPass({ state, result }: BoardingPassProps) {
               {/* バーコード風装飾 */}
               <div className="mt-4 border-t border-[#1a3a6c]/20 pt-2">
                 <div className="flex h-6 items-center gap-[1.5px]">
-                  {Array.from({ length: 44 }).map((_, i) => (
+                  {BARCODE_BARS.map((bar) => (
                     <div
-                      key={i}
+                      key={bar.id}
                       className="h-full bg-[#1a3a6c]"
-                      style={{
-                        width:
-                          i % 4 === 0 ? "3px" : i % 3 === 0 ? "1px" : "2px",
-                      }}
+                      style={{ width: bar.width }}
                     />
                   ))}
                 </div>

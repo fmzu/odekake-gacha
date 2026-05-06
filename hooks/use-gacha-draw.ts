@@ -1,19 +1,12 @@
 import { useCallback, useRef, useState } from "react"
 import { fallbackRandomSpot } from "@/lib/fallback-random-spot"
 import { fallbackRandomStation } from "@/lib/fallback-random-station"
-import type { FilterOptions, GachaResult, Mode } from "@/lib/types"
-
-// 紙の表示状態（旧 OmikujiBox 演出向けに残している返り値）。
-// SkyScene 演出では未使用だが、状態機械の入出力契約は変えない方針で型を内包する。
-type FoldedPaperState = "hidden" | "extracting" | "done"
-
-type SequenceState =
-  | "idle"
-  | "drawing"
-  | "waiting"
-  | "extracting"
-  | "revealing"
-  | "done"
+import type {
+  FilterOptions,
+  GachaResult,
+  GachaSequenceState,
+  Mode,
+} from "@/lib/types"
 
 // 演出時間の固定値（ミリ秒）
 const DRAWING_DURATION_MS = 500
@@ -24,7 +17,7 @@ const REVEALING_DURATION_MS = 1200
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export function useGachaDraw(mode: Mode, filter: FilterOptions) {
-  const [sequence, setSequence] = useState<SequenceState>("idle")
+  const [sequence, setSequence] = useState<GachaSequenceState>("idle")
   const [result, setResult] = useState<GachaResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const runningRef = useRef(false)
@@ -61,11 +54,11 @@ export function useGachaDraw(mode: Mode, filter: FilterOptions) {
     trackedFetch.catch(() => {})
 
     try {
-      // 1. 引き始め段階（固定 0.5s）— 箱の押下フィードバック演出。紙は箱の中に隠れたまま
+      // 1. 引き始め段階（固定 0.5s）— 飛行機が空を横切る演出開始
       setSequence("drawing")
       await sleep(DRAWING_DURATION_MS)
 
-      // 2. waiting: API resolve を待つ。箱は揺れ続け、紙は隠れたまま
+      // 2. waiting: API resolve を待つ。飛行機がループしながら空を横切り続ける
       //    最低 WAITING_MIN_DURATION_MS は必ず待つ
       setSequence("waiting")
       await sleep(WAITING_MIN_DURATION_MS)
@@ -77,11 +70,11 @@ export function useGachaDraw(mode: Mode, filter: FilterOptions) {
         throw fetchError ?? new Error("no result")
       }
 
-      // 3. extracting: 紙が一気に箱から滑らかに出てくる（固定 1.5s）
+      // 3. extracting: 封筒が空から舞い降りてくる（固定 1.5s）
       setSequence("extracting")
       await sleep(EXTRACTING_DURATION_MS)
 
-      // 4. revealing: チケットへ展開（固定 1.2s）
+      // 4. revealing: 封筒が開きチケットへ展開（固定 1.2s）
       setResult(fetched)
       setSequence("revealing")
       await sleep(REVEALING_DURATION_MS)
@@ -104,7 +97,7 @@ export function useGachaDraw(mode: Mode, filter: FilterOptions) {
 
   const subText = (() => {
     if (sequence === "drawing" || sequence === "extracting") {
-      return "紙を引いています…"
+      return "封筒が舞い降りています…"
     }
     if (sequence === "waiting") {
       return mode === "station" ? "探しています…" : "いい場所を探してる…"
@@ -114,20 +107,6 @@ export function useGachaDraw(mode: Mode, filter: FilterOptions) {
   })()
 
   const isBusy = sequence !== "idle" && sequence !== "done"
-
-  const paperState: FoldedPaperState = (() => {
-    // drawing / waiting 中は紙は完全に箱の中に隠れている
-    if (
-      sequence === "idle" ||
-      sequence === "drawing" ||
-      sequence === "waiting"
-    ) {
-      return "hidden"
-    }
-    if (sequence === "extracting") return "extracting"
-    // revealing / done では紙を隠してチケットにバトンタッチ
-    return "hidden"
-  })()
 
   const reset = useCallback(() => {
     setResult(null)
@@ -141,7 +120,6 @@ export function useGachaDraw(mode: Mode, filter: FilterOptions) {
     error,
     isBusy,
     subText,
-    paperState,
     handleDraw,
     handleRetry,
     reset,

@@ -40,3 +40,11 @@ export type FilterOptions = {
 }
 
 export type Mode = "station" | "spot"
+
+export type GachaSequenceState =
+  | "idle"
+  | "drawing"
+  | "waiting"
+  | "extracting"
+  | "revealing"
+  | "done"

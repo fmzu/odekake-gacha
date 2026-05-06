@@ -1,17 +1,10 @@
 "use client"
 
 import { motion } from "motion/react"
-
-export type VehicleState =
-  | "idle"
-  | "drawing"
-  | "waiting"
-  | "extracting"
-  | "revealing"
-  | "done"
+import type { GachaSequenceState } from "@/lib/types"
 
 type VehiclePlaneProps = {
-  state: VehicleState
+  state: GachaSequenceState
 }
 
 /**
@@ -21,36 +14,33 @@ type VehiclePlaneProps = {
  */
 export function VehiclePlane({ state }: VehiclePlaneProps) {
   const isFlying = state === "drawing" || state === "waiting"
-  const isHidden = state === "idle" || state === "revealing" || state === "done"
+  const isHidden =
+    state === "idle" ||
+    state === "extracting" ||
+    state === "revealing" ||
+    state === "done"
 
   if (isHidden) return null
 
-  const animateProps = (() => {
-    if (isFlying) {
-      return {
-        x: ["110%", "-110%"] as (string | number)[],
-      }
-    }
-    return { x: ["0%", "-110%"] as (string | number)[] }
-  })()
+  const animateProps = isFlying
+    ? { x: ["110%", "-110%"] }
+    : { x: ["0%", "-110%"] }
 
-  const transitionProps = (() => {
-    if (isFlying) {
-      return {
+  const transitionProps = isFlying
+    ? {
         x: {
           duration: 1.8,
           ease: "linear" as const,
           repeat: Infinity,
         },
       }
-    }
-    return {
-      x: { duration: 0.9, ease: "easeIn" as const },
-    }
-  })()
+    : {
+        x: { duration: 0.9, ease: "easeIn" as const },
+      }
 
   return (
     <motion.div
+      aria-hidden="true"
       className="pointer-events-none absolute z-20"
       style={{
         left: "50%",
@@ -62,13 +52,13 @@ export function VehiclePlane({ state }: VehiclePlaneProps) {
       transition={transitionProps}
     >
       <svg
+        aria-hidden="true"
         width="100"
         height="60"
         viewBox="0 0 100 60"
         xmlns="http://www.w3.org/2000/svg"
         style={{ display: "block" }}
       >
-        <title>飛行機</title>
         <defs>
           <linearGradient id="plane-body" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#fffdf8" />
