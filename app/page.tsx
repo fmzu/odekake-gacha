@@ -181,9 +181,9 @@ export default function OmikujiPage() {
         </SkyScene>
 
         {/* サブテキスト */}
-        <p className="mt-2 min-h-[1.25rem] text-center text-xs text-[#8a6d3b]">
-          {subText ?? ""}
-        </p>
+        {subText && (
+          <p className="mt-2 text-center text-xs text-[#8a6d3b]">{subText}</p>
+        )}
       </div>
 
       {/* エラー */}
@@ -193,7 +193,7 @@ export default function OmikujiPage() {
 
       {/* もう一回 */}
       {sequence === "done" && (
-        <div className="mt-4">
+        <div className="mt-2">
           <Button
             variant="outline"
             className="w-full border-[#d4c5a0] text-[#3a1d0a]"
